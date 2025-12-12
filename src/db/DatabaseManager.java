@@ -1,0 +1,197 @@
+package db;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+public class DatabaseManager {
+    private static final String JDBC_URL = "jdbc:h2:mem:usernotes;DB_CLOSE_DELAY=-1";
+    private static final String USER = "sa";
+    private static final String PASSWORD = "";
+
+
+    private static Connection connection;
+
+    public static Connection getConnection() throws SQLException {
+        if (connection == null || connection.isClosed()) {
+            connection = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
+        }
+        return connection;
+    }
+
+
+    public static void initDatabase() throws SQLException {
+        try (Statement stmt = getConnection().createStatement()) {
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS users (" +
+                            "id IDENTITY PRIMARY KEY, " +
+                            "emri VARCHAR(100), " +
+                            "mbiemri VARCHAR(100), " +
+                            "email VARCHAR(200) NOT NULL UNIQUE, " +
+                            "password VARCHAR(200), " +
+                            "data_regjistrimit DATE, " +
+                            "role VARCHAR(50) NOT NULL, " +
+                            "adresa VARCHAR(200), " +
+                            "nr_tel VARCHAR(30)" +
+                            ")"
+            );
+
+
+
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS produktet (" +
+                            "id_prod IDENTITY PRIMARY KEY, " +
+                            "emri_prod VARCHAR(200) NOT NULL, " +
+                            "pershkrimi VARCHAR(500), " +
+                            "cmimi DOUBLE NOT NULL, " +
+                            "stok INT NOT NULL, " +
+                            "kategori VARCHAR(100)" +
+                            ")"
+            );
+
+
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS shporta (" +
+                            "id_shporta IDENTITY PRIMARY KEY, " +
+                            "klient_id BIGINT NULL, " +
+                            "guest_id BIGINT NULL, " +
+                            "cmimi_total DOUBLE, " +
+                            "CONSTRAINT fk_shporta_klient FOREIGN KEY (klient_id) REFERENCES users(id) ON DELETE CASCADE, " +
+                            "CONSTRAINT fk_shporta_guest FOREIGN KEY (guest_id) REFERENCES users(id) ON DELETE CASCADE" +
+                            ")"
+            );
+
+
+            stmt.executeUpdate( "CREATE TABLE IF NOT EXISTS recetat (" +
+                    "id_recete IDENTITY PRIMARY KEY," +
+                    "klient_id BIGINT NOT NULL," +
+                    "farmacist_id BIGINT NOT NULL," +
+                    "data_recetes DATE NOT NULL," +
+                    "statusi_recetes VARCHAR(100) NOT NULL," +
+                    "foto_receta BLOB,"+
+                    "CONSTRAINT fk_recete_klient FOREIGN KEY (klient_id) REFERENCES users(id) ON DELETE CASCADE," +
+                    "CONSTRAINT fk_recete_farmacist FOREIGN KEY (farmacist_id) REFERENCES users(id) ON DELETE CASCADE" +
+                    ")"
+            );
+
+
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS recete_produkt (" +
+                    "recete_id BIGINT NOT NULL," +
+                    "produkt_id BIGINT NOT NULL," +
+                    "CONSTRAINT fk_recete_prod_recete FOREIGN KEY (recete_id) REFERENCES recetat(id_recete) ON DELETE CASCADE,"+
+                    "CONSTRAINT fk_recete_prod_produkt FOREIGN KEY (produkt_id) REFERENCES produktet(id_prod) ON DELETE CASCADE"+
+                    ")"
+            );
+
+
+
+
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS porosite (" +
+                            "id_porosi IDENTITY PRIMARY KEY, " +
+                            "klient_id BIGINT NOT NULL, " +
+                            "klient_type VARCHAR(50) NOT NULL, " +
+                            "data_porosise DATE NOT NULL, " +
+                            "totali DOUBLE NOT NULL, " +
+                            "status VARCHAR(100) NOT NULL, " +
+                            "CONSTRAINT fk_porosi_klient FOREIGN KEY (klient_id) REFERENCES users(id) ON DELETE CASCADE" +
+                            ")"
+            );
+
+
+            stmt.executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS porosi_produkt (" +
+                            "porosi_id BIGINT NOT NULL, " +
+                            "produkt_id BIGINT NOT NULL, " +
+                            "quantity INT NOT NULL,"+
+                            "PRIMARY KEY (porosi_id, produkt_id),"+
+
+                            "CONSTRAINT fk_pp_porosi FOREIGN KEY (porosi_id) REFERENCES porosite(id_porosi) ON DELETE CASCADE, " +
+                            "CONSTRAINT fk_pp_produkt FOREIGN KEY (produkt_id) REFERENCES produktet(id_prod) ON DELETE CASCADE" +
+                            ")"
+            );
+
+
+
+
+            stmt.executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS njoftimet (" +
+                            "id_njoftimi IDENTITY PRIMARY KEY, " +
+                            "user_id BIGINT NOT NULL, " +
+                            "tipi VARCHAR(100) NOT NULL,"+
+                            "mesazhi VARCHAR(500) NOT NULL, " +
+                            "data_koha TIMESTAMP NOT NULL, " +
+                            "eshte_lexuar BOOLEAN NOT NULL, " +
+                            "CONSTRAINT fk_njoftim_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE" +
+                            ")"
+            );
+
+
+
+
+
+            stmt.executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS faturet (" +
+                            "id_fature IDENTITY PRIMARY KEY, " +
+                            "porosi_id BIGINT NOT NULL, " +
+                            "klient_id BIGINT NOT NULL, " +
+                            "data_fatures DATE NOT NULL, " +
+                            "shuma_totale DOUBLE NOT NULL, " +
+                            "metoda_pageses VARCHAR(100) NOT NULL, " +
+
+                            "CONSTRAINT fk_fature_porosi FOREIGN KEY (porosi_id) REFERENCES porosite(id_porosi) ON DELETE CASCADE, " +
+                            "CONSTRAINT fk_fature_klient FOREIGN KEY (klient_id) REFERENCES users(id) ON DELETE CASCADE" +
+                            ")"
+            );
+
+
+
+
+            stmt.executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS email_subscriptions (" +
+                            "id_email IDENTITY PRIMARY KEY, " +
+                            "email VARCHAR(200) NOT NULL, " +
+                            "produkt_id BIGINT NOT NULL, " +
+                            "data_regjistrimit DATE NOT NULL, " +
+                            "CONSTRAINT fk_email_prod FOREIGN KEY (produkt_id) REFERENCES produktet(id_prod) ON DELETE CASCADE" +
+                            ")"
+            );
+
+
+
+            stmt.executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS sistemi_parametra (" +
+                            "param_key VARCHAR(100) PRIMARY KEY, " +
+                            "param_value VARCHAR(500) NOT NULL" +
+                            ")"
+            );
+
+
+
+            stmt.executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS audit_log (" +
+                            "id IDENTITY PRIMARY KEY, " +
+                            "user_id BIGINT NOT NULL, " +
+                            "veprimi VARCHAR(500) NOT NULL, " +
+                            "data_koha TIMESTAMP NOT NULL, " +
+                            "CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE" +
+                            ")"
+            );
+
+
+
+            stmt.executeUpdate( "CREATE TABLE shporta_produkt (" +
+                    "shporta_id BIGINT NOT NULL," +
+                    "produkt_id BIGINT NOT NULL," +
+                    "quantity INT NOT NULL," +
+                    "PRIMARY KEY (shporta_id, produkt_id)," +
+
+                    "FOREIGN KEY (shporta_id) REFERENCES shporta(id_shporta) ON DELETE CASCADE," +
+                    "FOREIGN KEY (produkt_id) REFERENCES produkt(id_prod)," +
+                    ")"
+            );
+
+
+
+
+        }
+
+    }
+}
