@@ -104,7 +104,40 @@ public class KlientService {
             );
         }
     }
+    public Porosi realizoPorosi(Klient klient,
+                                String emer,
+                                String mbiemer,
+                                String nrTel,
+                                String adresa) throws SQLException {
 
+        verifikoTeDhenatPerPorosi(klient, emer, mbiemer, nrTel, adresa);
+
+        Shporta shporta = shportaDao.findByKlient(klient.getId()).orElse(null);
+        if (shporta == null || shporta.getProduktet().isEmpty()) {
+            throw new IllegalStateException("Shporta është bosh.");
+        }
+
+        double totali = llogaritTotalin(shporta);
+
+        Porosi porosi = new Porosi();
+        porosi.setKlienti(klient);
+        porosi.setTotali(totali);
+
+        porosi = porosiDao.create(porosi);
+
+        for (ShportaProdukt sp : shporta.getProduktet()) {
+            PorosiProdukt pp = new PorosiProdukt(
+                    porosi.getIdPorosi(),
+                    sp.getProduktId(),
+                    sp.getQuantity()
+            );
+            porosiProduktDao.addProduktToPorosi(pp);
+        }
+
+        shportaDao.clearShporta(klient.getId());
+
+        return porosi;
+    }
 
 
 }
