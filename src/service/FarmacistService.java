@@ -27,6 +27,7 @@ public class FarmacistService {
         this.fatureDao = fatureDao;
         this.njoftimeDao = njoftimeDao;
         this.porosiDao = porosiDao;
+
     }
 
 
@@ -75,6 +76,30 @@ public class FarmacistService {
         ensureFarmacist(farmacist);
 
         return njoftimeDao.findByType("STOK_I_ULET");
+    }
+    public List<Produkt> merrProduktetMeStokTeUlet(User farmacist) throws SQLException {
+        ensureFarmacist(farmacist);
+
+        return produktDao.findStokBelow(5);
+    }
+
+    public Fature krijoFature(Fature f, User farmacist) throws SQLException {
+        ensureFarmacist(farmacist);
+
+        f.setDataFatures(LocalDate.now());
+        return fatureDao.create(f);
+    }
+    public Recete verifikoRecete(Long receteId, boolean aprovohet, User farmacist) throws SQLException {
+        ensureFarmacist(farmacist);
+
+        Optional<Recete> receteOpt = receteDao.findById(receteId);
+        if (receteOpt.isEmpty())
+            throw new IllegalArgumentException("Receta nuk u gjet");
+
+        Recete r = receteOpt.get();
+        r.setStatusiRecetes(aprovohet ? "APROVUAR" : "REFUZUAR");
+
+        return receteDao.update(r);
     }
 }
 
