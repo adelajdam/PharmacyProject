@@ -69,7 +69,60 @@ public class AdminService {
 
         userDao.delete(userId);
     }
+    public Farmacist updateFarmacist(
+            Long farmacistId,
+            String emri,
+            String mbiemri,
+            String email,
+            String password,
+            User admin
+    ) throws SQLException {
 
+        ensureAdmin(admin);
+
+        Optional<User> userOpt = userDao.findById(farmacistId);
+        if (userOpt.isEmpty())
+            throw new IllegalArgumentException("Farmacisti nuk u gjet");
+
+        User user = userOpt.get();
+        if (!"FARMACIST".equals(user.getRole()))
+            throw new IllegalArgumentException("Ky përdorues nuk është farmacist");
+
+        user.setEmri(emri);
+        user.setMbiemri(mbiemri);
+        user.setEmail(email);
+        user.setPassword(password);
+
+        return (Farmacist) userDao.update(user);
+    }
+
+
+    public Administrator updateAdministrator(
+            Long adminId,
+            String emri,
+            String mbiemri,
+            String email,
+            String password,
+            User admin
+    ) throws SQLException {
+
+        ensureAdmin(admin);
+
+        Optional<User> userOpt = userDao.findById(adminId);
+        if (userOpt.isEmpty())
+            throw new IllegalArgumentException("Administratori nuk u gjet");
+
+        User user = userOpt.get();
+        if (!"ADMINISTRATOR".equals(user.getRole()))
+            throw new IllegalArgumentException("Ky përdorues nuk është administrator");
+
+        user.setEmri(emri);
+        user.setMbiemri(mbiemri);
+        user.setEmail(email);
+        user.setPassword(password);
+
+        return (Administrator) userDao.update(user);
+    }
 
 }
 
