@@ -189,6 +189,16 @@ public class DatabaseManager {
             );
 
 
+            stmt.executeUpdate( "CREATE TABLE chatbox (" +
+                    "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
+                    "sender_id BIGINT NOT NULL," +
+                    "receiver_id BIGINT NOT NULL," +
+                    "permbajtja VARCHAR(1000) NOT NULL," +
+                    "data_dergimit TIMESTAMP NOT NULL," +
+                    "FOREIGN KEY (sender_id) REFERENCES users(id)," +
+                    "FOREIGN KEY (receiver_id) REFERENCES users(id)," +
+                    ")"
+            );
 
 
         }

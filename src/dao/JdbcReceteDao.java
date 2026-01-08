@@ -63,6 +63,27 @@ public class JdbcReceteDao implements ReceteDao {
 
 
     @Override
+    public List<Recete> findByStatus(String status) throws SQLException {
+        String sql = "SELECT * FROM recete WHERE statusi_recetes=?";
+        List<Recete> recetat = new ArrayList<>();
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, status);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                recetat.add(mapToRecete(rs));
+            }
+        }
+
+        return recetat;
+    }
+
+
+
+        @Override
     public List<Recete> findAll() throws SQLException {
         List<Recete> list = new ArrayList<>();
         String sql = "SELECT * FROM recetat";
