@@ -24,66 +24,101 @@ public class KlientService {
         this.produktDao = produktDao;
         this.shportaDao = shportaDao;
         this.shportaProduktDao = shportaProduktDao;
-        this.porosiDao=porosiDao;
-        this.porosiProduktDao=porosiProduktDao;
+        this.porosiDao = porosiDao;
+        this.porosiProduktDao = porosiProduktDao;
     }
 
-    public Optional<Produkt> kerkoProdukt(String emerProd) throws SQLException {
-        return produktDao.findByName(emerProd);
+    // --------------------- PRODUKTE ---------------------
+    public Optional<Produkt> kerkoProdukt(String emerProd) throws ServiceException {
+        try {
+            return produktDao.findByName(emerProd);
+        } catch (SQLException e) {
+            throw new ServiceException("Gabim gjatë kërkimit të produktit: " + e.getMessage(), e);
+        }
     }
 
-    public List<Produkt> kerkoProdukteKategori(String kategori) throws SQLException {
-        return produktDao.findByCategory(kategori);
+    public List<Produkt> kerkoProdukteKategori(String kategori) throws ServiceException {
+        try {
+            return produktDao.findByCategory(kategori);
+        } catch (SQLException e) {
+            throw new ServiceException("Gabim gjatë kërkimit të produkteve sipas kategorisë: " + e.getMessage(), e);
+        }
     }
 
-
-    public void shtoNeShporte(Klient klient, Long produktId, int quantity) throws SQLException {
-
-        Optional<Shporta> shportaOpt = shportaDao.findByKlient(klient.getId());
-        Shporta shporta;
-
-
-        if (shportaOpt.isEmpty()) {
-            shporta = new Shporta();
-            shporta.setKlientId(klient.getId());
-            shporta = shportaDao.create(shporta);
-        } else {
-            shporta = shportaOpt.get();
+    // --------------------- SHPORTA ---------------------
+    public void shtoNeShporte(Klient klient, Long produktId, int quantity) throws ServiceException {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Sasia duhet të jetë më e madhe se 0.");
         }
 
+        try {
+            Optional<Shporta> shportaOpt = shportaDao.findByKlient(klient.getId());
+            Shporta shporta;
 
-        shportaProduktDao.addProdukt(shporta.getIdShporta(), produktId, quantity);
-    }
+            if (shportaOpt.isEmpty()) {
+                shporta = new Shporta();
+                shporta.setKlientId(klient.getId());
+                shporta = shportaDao.create(shporta);
+            } else {
+                shporta = shportaOpt.get();
+            }
 
-    public void fshiNgaShporta(Klient klient, Long produktId) throws SQLException {
+            shportaProduktDao.addProdukt(shporta.getIdShporta(), produktId, quantity);
 
-        Optional<Shporta> shportaOpt = shportaDao.findByKlient(klient.getId());
-        if (shportaOpt.isEmpty()) return;
+            System.out.println("Produkti u shtua në shportë: ProduktID=" + produktId + ", Sasia=" + quantity);
 
-        Shporta shporta = shportaOpt.get();
-
-        shportaProduktDao.removeProdukt(shporta.getIdShporta(), produktId);
-    }
-
-    public Shporta merrShporten(Klient klient) throws SQLException {
-        return shportaDao.findByKlient(klient.getId()).orElse(null);
-    }
-
-    private double llogaritTotalin(Shporta shporta) throws SQLException {
-        double total = 0.0;
-
-        for (ShportaProdukt sp : shporta.getProduktet()) {
-            // Merr produktin nga DB për të marrë çmimin aktual
-            Produkt p = produktDao.findById(sp.getProduktId())
-                    .orElseThrow(() -> new SQLException("Produkti nuk u gjet"));
-
-            total += p.getCmimi() * sp.getQuantity();
+        } catch (SQLException e) {
+            throw new ServiceException("Gabim gjatë shtimit të produktit në shportë: " + e.getMessage(), e);
         }
-
-        return total;
     }
 
+    public void fshiNgaShporta(Klient klient, Long produktId) throws ServiceException {
+        try {
+            Optional<Shporta> shportaOpt = shportaDao.findByKlient(klient.getId());
+            if (shportaOpt.isEmpty()) return;
 
+            Shporta shporta = shportaOpt.get();
+            shportaProduktDao.removeProdukt(shporta.getIdShporta(), produktId);
+
+            System.out.println("Produkti u hoq nga shporta: ProduktID=" + produktId);
+
+        } catch (SQLException e) {
+            throw new ServiceException("Gabim gjatë fshirjes së produktit nga shporta: " + e.getMessage(), e);
+        }
+    }
+
+    public Shporta merrShporten(Klient klient) throws ServiceException {
+        try {
+            return shportaDao.findByKlient(klient.getId()).orElse(null);
+        } catch (SQLException e) {
+            throw new ServiceException("Gabim gjatë marrjes së shportës: " + e.getMessage(), e);
+        }
+    }
+
+    // --------------------- LLOGARIT TOTALIN ---------------------
+    private double llogaritTotalin(Shporta shporta) throws ServiceException {
+        try {
+            // Paralelizim për performancë
+            return shporta.getProduktet().parallelStream()
+                    .mapToDouble(sp -> {
+                        try {
+                            Produkt p = produktDao.findById(sp.getProduktId())
+                                    .orElseThrow(() -> new SQLException("Produkti nuk u gjet: " + sp.getProduktId()));
+                            return p.getCmimi() * sp.getQuantity();
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .sum();
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof SQLException) {
+                throw new ServiceException("Gabim gjatë llogaritjes së totalit: " + e.getCause().getMessage(), e.getCause());
+            }
+            throw e;
+        }
+    }
+
+    // --------------------- VERIFIKIMI ---------------------
     private void verifikoTeDhenatPerPorosi(Klient klient,
                                            String emer,
                                            String mbiemer,
@@ -104,40 +139,54 @@ public class KlientService {
             );
         }
     }
+
+    // --------------------- REALIZIMI I POROSISË ---------------------
     public Porosi realizoPorosi(Klient klient,
                                 String emer,
                                 String mbiemer,
                                 String nrTel,
-                                String adresa) throws SQLException {
+                                String adresa) throws ServiceException {
 
         verifikoTeDhenatPerPorosi(klient, emer, mbiemer, nrTel, adresa);
 
-        Shporta shporta = shportaDao.findByKlient(klient.getId()).orElse(null);
-        if (shporta == null || shporta.getProduktet().isEmpty()) {
-            throw new IllegalStateException("Shporta është bosh.");
+        try {
+            Shporta shporta = shportaDao.findByKlient(klient.getId()).orElse(null);
+            if (shporta == null || shporta.getProduktet().isEmpty()) {
+                throw new IllegalStateException("Shporta është bosh.");
+            }
+
+            double totali = llogaritTotalin(shporta);
+
+            Porosi porosi = new Porosi();
+            porosi.setKlienti(klient);
+            porosi.setTotali(totali);
+
+            porosi = porosiDao.create(porosi);
+
+            for (ShportaProdukt sp : shporta.getProduktet()) {
+                PorosiProdukt pp = new PorosiProdukt(
+                        porosi.getIdPorosi(),
+                        sp.getProduktId(),
+                        sp.getQuantity()
+                );
+                porosiProduktDao.addProduktToPorosi(pp);
+            }
+
+            shportaDao.clearShporta(klient.getId());
+
+            System.out.println("Porosia u krye me sukses: PorosiID=" + porosi.getIdPorosi());
+
+            return porosi;
+
+        } catch (SQLException e) {
+            throw new ServiceException("Gabim gjatë realizimit të porosisë: " + e.getMessage(), e);
         }
-
-        double totali = llogaritTotalin(shporta);
-
-        Porosi porosi = new Porosi();
-        porosi.setKlienti(klient);
-        porosi.setTotali(totali);
-
-        porosi = porosiDao.create(porosi);
-
-        for (ShportaProdukt sp : shporta.getProduktet()) {
-            PorosiProdukt pp = new PorosiProdukt(
-                    porosi.getIdPorosi(),
-                    sp.getProduktId(),
-                    sp.getQuantity()
-            );
-            porosiProduktDao.addProduktToPorosi(pp);
-        }
-
-        shportaDao.clearShporta(klient.getId());
-
-        return porosi;
     }
 
-
+    // --------------------- EXCEPTION CUSTOM ---------------------
+    public static class ServiceException extends Exception {
+        public ServiceException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
 }
