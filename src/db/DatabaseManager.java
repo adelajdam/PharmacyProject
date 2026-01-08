@@ -72,6 +72,17 @@ public class DatabaseManager {
                     ")"
             );
 
+            stmt.executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS foto_recete (" +
+                            "id IDENTITY PRIMARY KEY, " +
+                            "recete_id BIGINT NOT NULL, " +
+                            "foto_path VARCHAR(500) NOT NULL, " +
+                            "CONSTRAINT fk_foto_recete FOREIGN KEY (recete_id) " +
+                            "REFERENCES recetat(id_recete) ON DELETE CASCADE" +
+                            ")"
+            );
+
+
 
             stmt.executeUpdate("CREATE TABLE IF NOT EXISTS recete_produkt (" +
                     "recete_id BIGINT NOT NULL," +

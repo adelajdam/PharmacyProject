@@ -7,32 +7,22 @@ public class Mesazh {
     private Long id;
     private Long senderId;
     private Long receiverId;
+    private Long receteId;   // mesazhi lidhet me receten
     private String permbajtja;
+    private String fotoPath; // nëse mesazhi ka foto
     private LocalDateTime dataDergimit;
 
     public Mesazh() {}
 
-    public Mesazh(Long senderId, Long receiverId, String permbajtja) {
+    public Mesazh(Long senderId, Long receiverId, Long receteId,
+                  String permbajtja, String fotoPath) {
         this.senderId = senderId;
         this.receiverId = receiverId;
+        this.receteId = receteId;
         this.permbajtja = permbajtja;
+        this.fotoPath = fotoPath;
         this.dataDergimit = LocalDateTime.now();
     }
 
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public Long getSenderId() { return senderId; }
-    public void setSenderId(Long senderId) { this.senderId = senderId; }
-
-    public Long getReceiverId() { return receiverId; }
-    public void setReceiverId(Long receiverId) { this.receiverId = receiverId; }
-
-    public String getPermbajtja() { return permbajtja; }
-    public void setPermbajtja(String permbajtja) { this.permbajtja = permbajtja; }
-
-    public LocalDateTime getDataDergimit() { return dataDergimit; }
-    public void setDataDergimit(LocalDateTime dataDergimit) { this.dataDergimit = dataDergimit; }
+    // getters & setters
 }
-
