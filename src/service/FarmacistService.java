@@ -4,9 +4,7 @@ import dao.*;
 import Model.*;
 
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 public class FarmacistService {
 
@@ -15,93 +13,123 @@ public class FarmacistService {
     private final FatureDao fatureDao;
     private final NjoftimDao njoftimeDao;
     private final PorosiDao porosiDao;
+    private final ChatBoxDao chatDao;
 
-    public FarmacistService(ProduktDao produktDao,
-                            ReceteDao receteDao,
-                            FatureDao fatureDao,
-                            NjoftimDao njoftimeDao,
-                            PorosiDao porosiDao) {
-
+    public FarmacistService(
+            ProduktDao produktDao,
+            ReceteDao receteDao,
+            FatureDao fatureDao,
+            NjoftimDao njoftimeDao,
+            PorosiDao porosiDao,
+            ChatBoxDao chatDao
+    ) {
         this.produktDao = produktDao;
         this.receteDao = receteDao;
         this.fatureDao = fatureDao;
         this.njoftimeDao = njoftimeDao;
         this.porosiDao = porosiDao;
-
+        this.chatDao = chatDao;
     }
 
-
+    /* =================== SECURITY =================== */
     private void ensureFarmacist(User user) {
         if (user == null || !"FARMACIST".equals(user.getRole())) {
             throw new SecurityException("Vetëm farmacisti mund të kryejë këtë veprim");
         }
     }
 
+    /* =================== PRODUKTET =================== */
 
     public Produkt shtoProdukt(Produkt p, User farmacist) throws SQLException {
         ensureFarmacist(farmacist);
         return produktDao.create(p);
     }
 
-
     public Produkt updateProdukt(Produkt p, User farmacist) throws SQLException {
         ensureFarmacist(farmacist);
-
         return produktDao.update(p);
     }
 
-
     public void fshiProdukt(Long produktId, User farmacist) throws SQLException {
         ensureFarmacist(farmacist);
-
         produktDao.delete(produktId);
     }
 
+    public List<Njoftim> merrNjoftimeProduktJashteStokut(User farmacist) throws SQLException {
+        ensureFarmacist(farmacist);
+        return njoftimeDao.findByType("STOK_I_ULET");
+    }
+
+    /* =================== FATURET =================== */
 
     public List<Fature> merrFaturat(User farmacist) throws SQLException {
         ensureFarmacist(farmacist);
-
         return fatureDao.findAll();
     }
 
+    /* =================== POROSITË =================== */
 
-    public List<Njoftim> merrNjoftimePorosiDyshimta(User farmacist) throws SQLException {
+    public List<Porosi> merrPorosite(User farmacist) throws SQLException {
         ensureFarmacist(farmacist);
-
-        return njoftimeDao.findByType("POROSI_DYSHIMTE");
+        return porosiDao.findAll();
     }
 
+//    public Porosi pranoPorosi(Long porosiId, User farmacist) throws SQLException {
+//        ensureFarmacist(farmacist);
+//        Porosi p = porosiDao.findById(porosiId)
+//                .orElseThrow(() -> new IllegalArgumentException("Porosia nuk u gjet"));
+//        p.setStatus("PRANUAR");
+//        return porosiDao.update(p);
+//    }
+//
+//    public Porosi refuzoPorosi(Long porosiId, User farmacist) throws SQLException {
+//        ensureFarmacist(farmacist);
+//        Porosi p = porosiDao.findById(porosiId)
+//                .orElseThrow(() -> new IllegalArgumentException("Porosia nuk u gjet"));
+//        p.setStatus("REFUZUAR");
+//        return porosiDao.update(p);
+//    }
 
-    public List<Njoftim> merrNjoftimeProduktJashteStokut(User farmacist) throws SQLException {
+    /* =================== RECETAT =================== */
+
+    public Recete miratoRecete(Long receteId, User farmacist) throws SQLException {
         ensureFarmacist(farmacist);
-
-        return njoftimeDao.findByType("STOK_I_ULET");
-    }
-    public List<Produkt> merrProduktetMeStokTeUlet(User farmacist) throws SQLException {
-        ensureFarmacist(farmacist);
-
-        return produktDao.findStokBelow(5);
-    }
-
-    public Fature krijoFature(Fature f, User farmacist) throws SQLException {
-        ensureFarmacist(farmacist);
-
-        f.setDataFatures(LocalDate.now());
-        return fatureDao.create(f);
-    }
-    public Recete verifikoRecete(Long receteId, boolean aprovohet, User farmacist) throws SQLException {
-        ensureFarmacist(farmacist);
-
-        Optional<Recete> receteOpt = receteDao.findById(receteId);
-        if (receteOpt.isEmpty())
-            throw new IllegalArgumentException("Receta nuk u gjet");
-
-        Recete r = receteOpt.get();
-        r.setStatusiRecetes(aprovohet ? "APROVUAR" : "REFUZUAR");
-
+        Recete r = receteDao.findById(receteId)
+                .orElseThrow(() -> new IllegalArgumentException("Receta nuk u gjet"));
+        r.setStatusiRecetes("VLEFSHME");
         return receteDao.update(r);
     }
 
+    public Recete refuzoRecete(Long receteId, User farmacist) throws SQLException {
+        ensureFarmacist(farmacist);
+        Recete r = receteDao.findById(receteId)
+                .orElseThrow(() -> new IllegalArgumentException("Receta nuk u gjet"));
+        r.setStatusiRecetes("JO_VLEFSHME");
+        return receteDao.update(r);
+    }
 
+    /* =================== NJOFTIMET =================== */
+
+    public List<Njoftim> merrNjoftimePorosiDyshimta(User farmacist) throws SQLException {
+        ensureFarmacist(farmacist);
+        return njoftimeDao.findByType("POROSI_DYSHIMTE");
+    }
+
+    public Njoftim krijoNjoftim(Njoftim n, User farmacist) throws SQLException {
+        ensureFarmacist(farmacist);
+        return njoftimeDao.create(n);
+    }
+
+    /* =================== CHAT BOX =================== */
+
+    public Mesazh dergoMesazh(Long senderId, Long receiverId, String permbajtja, User farmacist) throws SQLException {
+        ensureFarmacist(farmacist);
+        Mesazh m = new Mesazh(senderId, receiverId, permbajtja);
+        return chatDao.create(m);
+    }
+
+    public List<Mesazh> merrMesazhet(Long user1Id, Long user2Id, User farmacist) throws SQLException {
+        ensureFarmacist(farmacist);
+        return chatDao.findByUsers(user1Id, user2Id);
+    }
 }
-

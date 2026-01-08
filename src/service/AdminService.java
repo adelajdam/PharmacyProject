@@ -17,6 +17,7 @@ public class AdminService {
         this.userDao = userDao;
     }
 
+    /* ================== HELPER ================== */
 
     private void ensureAdmin(User user) {
         if (user == null || !"ADMINISTRATOR".equals(user.getRole())) {
@@ -25,41 +26,60 @@ public class AdminService {
     }
 
 
-    public void backupDatabase(User admin) throws SQLException {
+
+    /* ================== USER MANAGEMENT ================== */
+
+    // Krijimi i farmacistit
+    public Farmacist createFarmacist(
+            String emri,
+            String mbiemri,
+            String email,
+            String password,
+            User admin
+    ) throws SQLException {
 
         ensureAdmin(admin);
 
-        String backupFile = "backup_" + LocalDate.now() + ".sql";
+        if (userDao.findByEmail(email).isPresent())
+            throw new IllegalArgumentException("Ky email është i zënë");
 
-        try (var conn = DatabaseManager.getConnection();
-             var stmt = conn.createStatement()) {
+        Farmacist f = new Farmacist();
+        f.setEmri(emri);
+        f.setMbiemri(mbiemri);
+        f.setEmail(email);
+        f.setPassword(password);
+        f.setRole("FARMACIST");
+        f.setDataRegjistrimit(LocalDate.now());
 
-            stmt.execute("SCRIPT TO '" + backupFile + "'");
-
-        } catch (SQLException e) {
-            throw new SQLException("Backup-i dështoi: " + e.getMessage());
-        }
+        return (Farmacist) userDao.create(f);
     }
 
+    // Krijimi i administratorit
+    public Administrator createAdministrator(
+            String emri,
+            String mbiemri,
+            String email,
+            String password,
+            User admin
+    ) throws SQLException {
 
-    public List<User> getAllFarmacists(User admin) throws SQLException {
         ensureAdmin(admin);
-        return userDao.findByRole("FARMACIST");
+
+        if (userDao.findByEmail(email).isPresent())
+            throw new IllegalArgumentException("Ky email është i zënë");
+
+        Administrator a = new Administrator();
+        a.setEmri(emri);
+        a.setMbiemri(mbiemri);
+        a.setEmail(email);
+        a.setPassword(password);
+        a.setRole("ADMINISTRATOR");
+        a.setDataRegjistrimit(LocalDate.now());
+
+        return (Administrator) userDao.create(a);
     }
 
-
-    public List<User> getAllClients(User admin) throws SQLException {
-        ensureAdmin(admin);
-        return userDao.findByRole("KLIENT_LOGUAR");
-    }
-
-
-    public List<User> getAllAdministrators(User admin) throws SQLException {
-        ensureAdmin(admin);
-        return userDao.findByRole("ADMINISTRATOR");
-    }
-
-
+    // Fshirja e përdoruesit
     public void deleteUser(Long userId, User admin) throws SQLException {
         ensureAdmin(admin);
 
@@ -69,6 +89,9 @@ public class AdminService {
 
         userDao.delete(userId);
     }
+
+
+    // Përditësimi i farmacistit
     public Farmacist updateFarmacist(
             Long farmacistId,
             String emri,
@@ -80,11 +103,9 @@ public class AdminService {
 
         ensureAdmin(admin);
 
-        Optional<User> userOpt = userDao.findById(farmacistId);
-        if (userOpt.isEmpty())
-            throw new IllegalArgumentException("Farmacisti nuk u gjet");
+        User user = userDao.findById(farmacistId)
+                .orElseThrow(() -> new IllegalArgumentException("Farmacisti nuk u gjet"));
 
-        User user = userOpt.get();
         if (!"FARMACIST".equals(user.getRole()))
             throw new IllegalArgumentException("Ky përdorues nuk është farmacist");
 
@@ -96,33 +117,59 @@ public class AdminService {
         return (Farmacist) userDao.update(user);
     }
 
+    /* ================== QUERIES ================== */
 
-    public Administrator updateAdministrator(
-            Long adminId,
-            String emri,
-            String mbiemri,
-            String email,
-            String password,
-            User admin
-    ) throws SQLException {
-
+    public List<User> getAllFarmacists(User admin) throws SQLException {
         ensureAdmin(admin);
-
-        Optional<User> userOpt = userDao.findById(adminId);
-        if (userOpt.isEmpty())
-            throw new IllegalArgumentException("Administratori nuk u gjet");
-
-        User user = userOpt.get();
-        if (!"ADMINISTRATOR".equals(user.getRole()))
-            throw new IllegalArgumentException("Ky përdorues nuk është administrator");
-
-        user.setEmri(emri);
-        user.setMbiemri(mbiemri);
-        user.setEmail(email);
-        user.setPassword(password);
-
-        return (Administrator) userDao.update(user);
+        return userDao.findByRole("FARMACIST");
     }
 
-}
+    public List<User> getAllClients(User admin) throws SQLException {
+        ensureAdmin(admin);
+        return userDao.findByRole("KLIENT_LOGUAR");
+    }
 
+    public List<User> getAllAdministrators(User admin) throws SQLException {
+        ensureAdmin(admin);
+        return userDao.findByRole("ADMINISTRATOR");
+    }
+
+    /* ================== SYSTEM CONFIG ================== */
+    // (strukturë bazë – mund të zgjerohet)
+
+    public void updateSystemConfig(String key, String value, User admin) {
+        ensureAdmin(admin);
+        // systemConfigDao.update(key, value);
+    }
+
+    /* ================== AUDIT / REPORTS ================== */
+    // Placeholder – strukturë e gatshme për zgjerim
+
+    public void logAction(Long userId, String action) {
+        // auditLogDao.save(...)
+    }
+
+    /* ================== BACKUP & RESTORE ================== */
+
+    public void backupDatabase(User admin) throws SQLException {
+        ensureAdmin(admin);
+
+        String backupFile = "backup_" + LocalDate.now() + ".sql";
+
+        try (var conn = DatabaseManager.getConnection();
+             var stmt = conn.createStatement()) {
+
+            stmt.execute("SCRIPT TO '" + backupFile + "'");
+        }
+    }
+
+    public void restoreDatabase(String backupFile, User admin) throws SQLException {
+        ensureAdmin(admin);
+
+        try (var conn = DatabaseManager.getConnection();
+             var stmt = conn.createStatement()) {
+
+            stmt.execute("RUNSCRIPT FROM '" + backupFile + "'");
+        }
+    }
+}

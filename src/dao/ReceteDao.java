@@ -10,6 +10,7 @@ public interface ReceteDao {
         Recete create(Recete recete) throws SQLException;
         Optional<Recete> findById(Long id) throws SQLException;
         List<Recete> findAll() throws SQLException;
+        List<Recete> findByStatus(String status) throws SQLException;
         Recete update(Recete recete) throws SQLException;
         void delete(Long id) throws SQLException;
 

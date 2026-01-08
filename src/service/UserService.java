@@ -2,11 +2,11 @@ package service;
 
 import dao.UserDao;
 import Model.*;
+import org.mindrot.jbcrypt.BCrypt;
+import session.AppSession;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
 
 public class UserService {
 
@@ -16,26 +16,10 @@ public class UserService {
         this.userDao = userDao;
     }
 
+    /* ================== SIGN UP ================== */
+    // Vetëm klientë të pa-loguar
 
-    public User login(String email, String password) throws SQLException {
-
-        Optional<User> userOpt = userDao.findByEmail(email);
-
-        if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("Email nuk ekziston");
-        }
-
-        User user = userOpt.get();
-
-        if (!user.getPassword().equals(password)) {
-            throw new IllegalArgumentException("Password i gabuar");
-        }
-
-        return user;
-    }
-
-
-    public KlientLoguar registerKlient(
+    public KlientLoguar signUpKlient(
             String emri,
             String mbiemri,
             String email,
@@ -43,18 +27,6 @@ public class UserService {
             String adresa,
             String nrTel
     ) throws SQLException {
-
-        if (emri == null || emri.isBlank())
-            throw new IllegalArgumentException("Emri nuk mund të jetë bosh");
-
-        if (mbiemri == null || mbiemri.isBlank())
-            throw new IllegalArgumentException("Mbiemri nuk mund të jetë bosh");
-
-        if (email == null || email.isBlank())
-            throw new IllegalArgumentException("Email nuk mund të jetë bosh");
-
-        if (password == null || password.isBlank())
-            throw new IllegalArgumentException("Password nuk mund të jetë bosh");
 
         if (userDao.findByEmail(email).isPresent())
             throw new IllegalArgumentException("Ky email është i zënë");
@@ -63,7 +35,7 @@ public class UserService {
         klient.setEmri(emri);
         klient.setMbiemri(mbiemri);
         klient.setEmail(email);
-        klient.setPassword(password);
+        klient.setPassword(BCrypt.hashpw(password, BCrypt.gensalt()));
         klient.setAdresa(adresa);
         klient.setNrTel(nrTel);
         klient.setRole("KLIENT_LOGUAR");
@@ -72,117 +44,44 @@ public class UserService {
         return (KlientLoguar) userDao.create(klient);
     }
 
+    /* ================== LOGIN KLIENT ================== */
 
-    public KlientGuest registerGuest(String email) throws SQLException {
+    public KlientLoguar loginKlient(String email, String password) throws SQLException {
 
-        if (email == null || email.isBlank())
-            throw new IllegalArgumentException("Email nuk mund të jetë bosh");
+        User user = userDao.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Email nuk ekziston"));
 
-        KlientGuest guest = new KlientGuest();
-        guest.setEmail(email);
-        guest.setRole("KLIENT_GUEST");
-        guest.setDataRegjistrimit(LocalDate.now());
+        if (!"KLIENT_LOGUAR".equals(user.getRole()))
+            throw new SecurityException("Ky login është vetëm për klientë");
 
-        return (KlientGuest) userDao.create(guest);
+        if (!BCrypt.checkpw(password, user.getPassword()))
+            throw new IllegalArgumentException("Password i gabuar");
+
+        return (KlientLoguar) user;
     }
 
+    /* ================== DASHBOARD LOGIN ================== */
+    // Vetëm admin & farmacist
 
-    public Farmacist createFarmacist(
-            String emri,
-            String mbiemri,
-            String email,
-            String password,
-            User admin
-    ) throws SQLException {
+    public User loginDashboard(String email, String password) throws SQLException {
 
-        if (!isAdmin(admin))
-            throw new SecurityException("Vetëm administratori mund të krijojë farmacistë");
+        User user = userDao.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Email nuk ekziston"));
 
-        if (userDao.findByEmail(email).isPresent())
-            throw new IllegalArgumentException("Ky email është i zënë");
+        if (!BCrypt.checkpw(password, user.getPassword()))
+            throw new IllegalArgumentException("Password i gabuar");
 
-        Farmacist f = new Farmacist();
-        f.setEmri(emri);
-        f.setMbiemri(mbiemri);
-        f.setEmail(email);
-        f.setPassword(password);
-        f.setRole("FARMACIST");
-        f.setDataRegjistrimit(LocalDate.now());
+        if (!user.getRole().equals("ADMINISTRATOR") &&
+                !user.getRole().equals("FARMACIST"))
+            throw new SecurityException("Nuk keni akses në dashboard");
 
-        return (Farmacist) userDao.create(f);
+        return user;
     }
 
+    /* ================== LOGOUT ================== */
 
-    public Administrator createAdmin(
-            String emri,
-            String mbiemri,
-            String email,
-            String password,
-            User admin
-    ) throws SQLException {
-
-        if (!isAdmin(admin))
-            throw new SecurityException("Vetëm administratori mund të krijojë administratorë");
-
-        if (userDao.findByEmail(email).isPresent())
-            throw new IllegalArgumentException("Ky email është i zënë");
-
-        Administrator a = new Administrator();
-        a.setEmri(emri);
-        a.setMbiemri(mbiemri);
-        a.setEmail(email);
-        a.setPassword(password);
-        a.setRole("ADMINISTRATOR");
-        a.setDataRegjistrimit(LocalDate.now());
-
-        return (Administrator) userDao.create(a);
+    public void logout() {
+        AppSession.logout();
     }
 
-
-    public User updateKlientPersonalData(
-            Long userId,
-            String email,
-            String adresa,
-            String nrTel
-    ) throws SQLException {
-
-        Optional<User> userOpt = userDao.findById(userId);
-
-        if (userOpt.isEmpty())
-            throw new IllegalArgumentException("Përdoruesi nuk u gjet");
-
-        User user = userOpt.get();
-
-        if (!isKlient(user))
-            throw new SecurityException("Vetëm klientët mund të ndryshojnë të dhënat personale");
-
-        if (email != null && !email.isBlank())
-            user.setEmail(email);
-
-        if (adresa != null && !adresa.isBlank() && user instanceof Klient klient)
-            klient.setAdresa(adresa);
-
-        if (nrTel != null && !nrTel.isBlank() && user instanceof Klient klient)
-            klient.setNrTel(nrTel);
-
-        return userDao.update(user);
-    }
-
-
-    public List<User> getUsersByRole(String role) throws SQLException {
-        return userDao.findByRole(role);
-    }
-
-
-    private boolean isAdmin(User user) {
-        return "ADMINISTRATOR".equals(user.getRole());
-    }
-
-    private boolean isFarmacist(User user) {
-        return "FARMACIST".equals(user.getRole());
-    }
-
-    private boolean isKlient(User user) {
-        return "KLIENT_LOGUAR".equals(user.getRole()) || "KLIENT_GUEST".equals(user.getRole());
-    }
 }
