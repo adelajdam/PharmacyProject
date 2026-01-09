@@ -4,6 +4,7 @@ import dao.*;
 import Model.*;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class FarmacistService {
@@ -122,14 +123,38 @@ public class FarmacistService {
 
     /* =================== CHAT BOX =================== */
 
-    public Mesazh dergoMesazh(Long senderId, Long receiverId, String permbajtja, User farmacist) throws SQLException {
+    public Mesazh dergoMesazh(Long senderId,
+                              Long receiverId,
+                              String permbajtja,
+                              User farmacist) throws SQLException {
+
         ensureFarmacist(farmacist);
-        Mesazh m = new Mesazh(senderId, receiverId, permbajtja);
+
+        Mesazh m = new Mesazh(
+                senderId,
+                receiverId,
+                permbajtja
+        );
+
         return chatDao.create(m);
     }
 
-    public List<Mesazh> merrMesazhet(Long user1Id, Long user2Id, User farmacist) throws SQLException {
+
+    public List<Mesazh> merrMesazheNgaKlienti(
+            Long farmacistId,
+            Long klientId,
+            User farmacist
+    ) throws SQLException {
+
         ensureFarmacist(farmacist);
-        return chatDao.findByUsers(user1Id, user2Id);
+
+        // siguri shtesë: verifikon që id-ja e farmacistit përputhet
+        if (!farmacist.getId().equals(farmacistId)) {
+            throw new SecurityException("ID e farmacistit nuk përputhet");
+        }
+
+        // Merr të gjitha mesazhet midis farmacistit dhe klientit
+        return chatDao.findByUsers(klientId, farmacistId);
     }
+
 }

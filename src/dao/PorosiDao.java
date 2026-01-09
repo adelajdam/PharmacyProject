@@ -11,4 +11,5 @@ public interface PorosiDao {
     Optional<Porosi> findById(Long idPorosi) throws SQLException;
     List<Porosi> findAll() throws SQLException;
     void delete(Long idPorosi) throws SQLException;
+    List<Porosi> findByKlientId(Long klientId) throws SQLException;
 }

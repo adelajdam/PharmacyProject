@@ -114,6 +114,30 @@ public class JdbcPorosiDao implements PorosiDao {
         }
     }
 
+
+
+    @Override
+    public List<Porosi> findByKlientId(Long klientId) throws SQLException {
+        List<Porosi> list = new ArrayList<>();
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "SELECT * FROM porosi WHERE klient_id = ? ORDER BY id_porosi DESC")) {
+
+            stmt.setLong(1, klientId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapToOrder(rs));
+                }
+            }
+        }
+
+        return list;
+    }
+
+
+
     private Porosi mapToOrder(ResultSet rs) throws SQLException {
         Porosi porosi = new Porosi();
         porosi.setIdPorosi(rs.getLong("id_porosi"));

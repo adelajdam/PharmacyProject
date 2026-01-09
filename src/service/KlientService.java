@@ -14,18 +14,24 @@ public class KlientService {
     private final ShportaProduktDao shportaProduktDao;
     private final PorosiDao porosiDao;
     private final PorosiProduktDao porosiProduktDao;
+    private final ChatBoxDao chatBoxDao;
+    private final UserDao userDao;
 
     public KlientService(ProduktDao produktDao,
                          ShportaDao shportaDao,
                          ShportaProduktDao shportaProduktDao,
                          PorosiDao porosiDao,
-                         PorosiProduktDao porosiProduktDao) {
+                         PorosiProduktDao porosiProduktDao,
+                         ChatBoxDao chatBoxDao,
+                         UserDao userDao) {
 
         this.produktDao = produktDao;
         this.shportaDao = shportaDao;
         this.shportaProduktDao = shportaProduktDao;
         this.porosiDao = porosiDao;
         this.porosiProduktDao = porosiProduktDao;
+        this.chatBoxDao = chatBoxDao;
+        this.userDao = userDao;
     }
 
     // --------------------- PRODUKTE ---------------------
@@ -189,4 +195,99 @@ public class KlientService {
             super(message, cause);
         }
     }
+
+
+    private void ensureKlientLoguar(User user) {
+        if (user == null || !"KLIENT_LOGUAR".equals(user.getRole())) {
+            throw new SecurityException(
+                    "Vetëm klientët e loguar mund të përdorin chatbox"
+            );
+        }
+    }
+
+
+    public Mesazh dergoMesazhMeRecete(
+            Long klientId,
+            Long farmacistId,
+            Long receteId,
+            String permbajtja,
+            String fotoPath,
+            User klient
+    ) throws SQLException {
+
+        ensureKlientLoguar(klient);
+
+        if (!klient.getId().equals(klientId)) {
+            throw new SecurityException("ID e klientit nuk përputhet");
+        }
+
+        Mesazh m = new Mesazh(
+                klientId,
+                farmacistId,
+                receteId,
+                permbajtja,
+                fotoPath
+        );
+
+        return chatBoxDao.create(m);
+    }
+
+
+    public List<Mesazh> merrMesazheNgaFarmacisti(
+            Long klientId,
+            Long farmacistId,
+            User klient
+    ) throws SQLException {
+
+        ensureKlientLoguar(klient);
+
+        // siguri shtesë (rekomanduar)
+        if (!klient.getId().equals(klientId)) {
+            throw new SecurityException("ID e klientit nuk përputhet");
+        }
+
+        return chatBoxDao.findByUsers(farmacistId, klientId);
+    }
+
+
+    public KlientLoguar updateKlientPersonalData(
+            Long klientId,
+            String emri,
+            String mbiemri,
+            String email,
+            String password,
+            String adresa,
+            String nrTel,
+            User klient
+    ) throws SQLException {
+
+        ensureKlientLoguar(klient);
+
+        if (!klient.getId().equals(klientId)) {
+            throw new SecurityException("ID e klientit nuk përputhet");
+        }
+
+        Optional<User> userOpt = userDao.findById(klientId);
+        if (userOpt.isEmpty()) throw new IllegalArgumentException("Klienti nuk u gjet");
+
+        KlientLoguar k = (KlientLoguar) userOpt.get();
+
+        if (emri != null && !emri.isBlank()) k.setEmri(emri);
+        if (mbiemri != null && !mbiemri.isBlank()) k.setMbiemri(mbiemri);
+        if (email != null && !email.isBlank()) k.setEmail(email);
+        if (password != null && !password.isBlank()) k.setPassword(password); // hash if needed
+        if (adresa != null && !adresa.isBlank()) k.setAdresa(adresa);
+        if (nrTel != null && !nrTel.isBlank()) k.setNrTel(nrTel);
+
+        return (KlientLoguar) userDao.update(k);
+    }
+
+
+    public List<Porosi> getPorosiHistorik(Klient klient) throws SQLException {
+        ensureKlientLoguar(klient);
+        return porosiDao.findByKlientId(klient.getId());
+    }
+
+
+
 }
