@@ -1,15 +1,21 @@
 package dao;
 
+import Model.Produkt;
 import Model.Shporta;
 import Model.ShportaProdukt;
 import db.DatabaseManager;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class JdbcShportaDao implements ShportaDao {
+    private final DataSource dataSource;
+    public JdbcShportaDao(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     @Override
     public Shporta create(Shporta shporta) throws SQLException {
@@ -41,23 +47,23 @@ public class JdbcShportaDao implements ShportaDao {
 
     private void addProductsToShporta(Shporta shporta) throws SQLException {
         String sql = """
-                INSERT INTO shporta_produkt (shporta_id, produkt_id, quantity)
-                VALUES (?, ?, ?)
-                """;
+            INSERT INTO shporta_produkt (shporta_id, produkt_id, quantity)
+            VALUES (?, ?, ?)
+            """;
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             for (ShportaProdukt sp : shporta.getProduktet()) {
                 ps.setLong(1, shporta.getIdShporta());
-                ps.setLong(2, sp.getProduktId());
+                ps.setLong(2, sp.getProdukt().getIdProd());
                 ps.setInt(3, sp.getQuantity());
                 ps.addBatch();
             }
 
-            ps.executeBatch();
+            ps.executeBatch(); // mos harro ta ekzekutosh batch-in
         }
-    }
+}
 
 
     @Override
@@ -89,9 +95,12 @@ public class JdbcShportaDao implements ShportaDao {
         List<ShportaProdukt> list = new ArrayList<>();
 
         String sql = """
-                SELECT * FROM shporta_produkt
-                WHERE shporta_id = ?
-                """;
+        SELECT sp.shporta_id, sp.quantity,
+               p.id_prod, p.emri_prod, p.cmimi, p.stok, p.kategori
+        FROM shporta_produkt sp
+        JOIN produktet p ON sp.produkt_id = p.id_prod
+        WHERE sp.shporta_id = ?
+    """;
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -100,17 +109,75 @@ public class JdbcShportaDao implements ShportaDao {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    list.add(new ShportaProdukt(
-                            rs.getLong("shporta_id"),
-                            rs.getLong("produkt_id"),
-                            rs.getInt("quantity")
-                    ));
+                    // Krijo objektin Produkt
+                    Produkt produkt = new Produkt();
+                    produkt.setIdProd(rs.getLong("id_prod"));
+                    produkt.setEmriProd(rs.getString("emri_prod"));
+                    produkt.setCmimi(rs.getDouble("cmimi"));
+                    produkt.setStok(rs.getInt("stok"));
+                    produkt.setKategori(rs.getString("kategori"));
+
+                    // Krijo ShportaProdukt me Produkt brenda
+                    ShportaProdukt sp = new ShportaProdukt();
+                    sp.setShportaId(rs.getLong("shporta_id"));
+                    sp.setProdukt(produkt);
+                    sp.setQuantity(rs.getInt("quantity"));
+
+                    list.add(sp);
                 }
             }
         }
 
         return list;
     }
+
+
+    @Override
+    public List<ShportaProdukt> findProduktetNeShporte(long shportaId) throws SQLException {
+
+        String sql = """
+        SELECT
+            sp.shporta_id,
+            sp.produkt_id,
+            sp.quantity,
+            p.emri_prod,
+            p.cmimi,
+            p.stok,
+            p.kategori
+        FROM shporta_produkt sp
+        JOIN produktet p ON sp.produkt_id = p.id_prod
+        WHERE sp.shporta_id = ?
+        """;
+
+        List<ShportaProdukt> lista = new ArrayList<>();
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setLong(1, shportaId);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Produkt produkt = new Produkt();
+                produkt.setIdProd(rs.getLong("produkt_id"));
+                produkt.setEmriProd(rs.getString("emri_prod"));
+                produkt.setCmimi(rs.getDouble("cmimi"));
+                produkt.setStok(rs.getInt("stok"));
+                produkt.setKategori(rs.getString("kategori"));
+
+                ShportaProdukt sp = new ShportaProdukt();
+                sp.setShportaId(rs.getLong("shporta_id"));
+                sp.setProdukt(produkt);
+                sp.setQuantity(rs.getInt("quantity"));
+
+                lista.add(sp);
+            }
+        }
+
+        return lista;
+    }
+
+
 
 
     private Shporta mapToShporta(ResultSet rs) throws SQLException {

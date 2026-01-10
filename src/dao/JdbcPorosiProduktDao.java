@@ -3,11 +3,16 @@ package dao;
 import Model.PorosiProdukt;
 import db.DatabaseManager;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class JdbcPorosiProduktDao implements PorosiProduktDao {
+    private final DataSource dataSource;
+    public JdbcPorosiProduktDao(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     @Override
     public void addProduktToPorosi(PorosiProdukt pp) throws SQLException {

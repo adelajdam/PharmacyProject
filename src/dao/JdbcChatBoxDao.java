@@ -3,12 +3,17 @@ package dao;
 import Model.Mesazh;
 import db.DatabaseManager;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class JdbcChatBoxDao implements ChatBoxDao {
+    private final DataSource dataSource;
+    public JdbcChatBoxDao(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     @Override
     public Mesazh create(Mesazh mesazh) throws SQLException {

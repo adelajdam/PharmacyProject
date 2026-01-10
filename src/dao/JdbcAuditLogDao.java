@@ -1,66 +1,96 @@
 package dao;
 
 import Model.AuditLog;
-import Model.User;
-import db.DatabaseManager;
 
+import javax.sql.DataSource;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class JdbcAuditLogDao implements AuditLogDao {
 
+    private final DataSource dataSource;
+
+    public JdbcAuditLogDao(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
     @Override
     public AuditLog create(AuditLog log) throws SQLException {
-        String sql = """
-                INSERT INTO audit_log (user_id, veprimi, data_koha)
-                VALUES (?, ?, ?)
-                """;
 
-        try (Connection conn = DatabaseManager.getConnection();
+        if (log.getUserId() == null) {
+            throw new IllegalArgumentException("AuditLog duhet të ketë userId");
+        }
+
+        if (log.getDataKoha() == null) {
+            log.setDataKoha(LocalDateTime.now());
+        }
+
+        String sql = """
+            INSERT INTO audit_log (user_id, veprimi, data_koha)
+            VALUES (?, ?, ?)
+        """;
+
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            ps.setLong(1, log.getUser().getId());
+            ps.setLong(1, log.getUserId());
             ps.setString(2, log.getVeprimi());
             ps.setTimestamp(3, Timestamp.valueOf(log.getDataKoha()));
 
             ps.executeUpdate();
 
             try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) log.setIdLog(rs.getLong(1));
+                if (rs.next()) {
+                    log.setIdLog(rs.getLong(1));
+                }
             }
         }
+
         return log;
     }
 
     @Override
     public List<AuditLog> findAll() throws SQLException {
         List<AuditLog> list = new ArrayList<>();
+
         String sql = "SELECT * FROM audit_log ORDER BY data_koha DESC";
 
-        try (Connection conn = DatabaseManager.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
-            while (rs.next()) list.add(mapToLog(rs));
+            while (rs.next()) {
+                list.add(mapToLog(rs));
+            }
         }
+
         return list;
     }
 
     @Override
     public List<AuditLog> findByUser(Long userId) throws SQLException {
         List<AuditLog> list = new ArrayList<>();
-        String sql = "SELECT * FROM audit_log WHERE user_id = ? ORDER BY data_koha DESC";
 
-        try (Connection conn = DatabaseManager.getConnection();
+        String sql = """
+            SELECT * FROM audit_log
+            WHERE user_id = ?
+            ORDER BY data_koha DESC
+        """;
+
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setLong(1, userId);
 
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) list.add(mapToLog(rs));
+                while (rs.next()) {
+                    list.add(mapToLog(rs));
+                }
             }
         }
+
         return list;
     }
 
@@ -68,15 +98,12 @@ public class JdbcAuditLogDao implements AuditLogDao {
         AuditLog log = new AuditLog();
 
         log.setIdLog(rs.getLong("id"));
-
-        User u = new User() {};
-        u.setId(rs.getLong("user_id"));
-        log.setUser(u);
-
+        log.setUserId(rs.getLong("user_id"));
         log.setVeprimi(rs.getString("veprimi"));
-        log.setDataKoha(rs.getTimestamp("data_koha").toLocalDateTime());
+        log.setDataKoha(
+                rs.getTimestamp("data_koha").toLocalDateTime()
+        );
 
         return log;
     }
 }
-

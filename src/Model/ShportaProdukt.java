@@ -1,24 +1,26 @@
 package Model;
 
 public class ShportaProdukt {
-    private Long shportaId;
-    private Long produktId;
+    private long shportaId;
+    private Produkt produkt; // ky duhet të ekzistojë
     private int quantity;
 
-    public ShportaProdukt() {}
-
-    public ShportaProdukt(Long shportaId, Long produktId, int quantity) {
+    public ShportaProdukt(Long shportaId, Produkt produkt, int quantity) {
         this.shportaId = shportaId;
-        this.produktId = produktId;
+        this.produkt = produkt;
         this.quantity = quantity;
     }
 
-    public Long getShportaId() { return shportaId; }
-    public Long getProduktId() { return produktId; }
-    public int getQuantity() { return quantity; }
+    public ShportaProdukt() {
+    }
 
-    public void setShportaId(Long shportaId) { this.shportaId = shportaId; }
-    public void setProduktId(Long produktId) { this.produktId = produktId; }
+    // getter & setter
+    public long getShportaId() { return shportaId; }
+    public void setShportaId(long shportaId) { this.shportaId = shportaId; }
+
+    public Produkt getProdukt() { return produkt; }
+    public void setProdukt(Produkt produkt) { this.produkt = produkt; }
+
+    public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
 }
-

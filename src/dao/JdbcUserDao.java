@@ -3,6 +3,7 @@ package dao;
 import Model.*;
 import db.DatabaseManager;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -10,6 +11,10 @@ import java.util.List;
 import java.util.Optional;
 
 public class JdbcUserDao implements UserDao {
+    private final DataSource dataSource;
+    public JdbcUserDao(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     @Override
     public User create(User user) throws SQLException {
@@ -154,9 +159,6 @@ public class JdbcUserDao implements UserDao {
         }
     }
 
-    // ---------------------------------------------------------
-    // ✅ MAPIMI I SAKTË I USER NGA DB
-    // ---------------------------------------------------------
     private User mapToUser(ResultSet rs) throws SQLException {
 
         Long id = rs.getLong("id");

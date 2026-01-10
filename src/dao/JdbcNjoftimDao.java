@@ -4,27 +4,40 @@ import Model.Njoftim;
 import Model.User;
 import db.DatabaseManager;
 
+import javax.sql.DataSource;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class JdbcNjoftimDao implements NjoftimDao {
+    private final DataSource dataSource;
+    public JdbcNjoftimDao(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
-    @Override
     public Njoftim create(Njoftim njoftim) throws SQLException {
-        String sql = """
-                INSERT INTO njoftimet (user_id, mesazhi, data_koha, eshte_lexuar)
-                VALUES (?, ?, ?, ?)
-                """;
 
-        try (Connection conn = DatabaseManager.getConnection();
+        if (njoftim.getDataKoha() == null) {
+            njoftim.setDataKoha(LocalDateTime.now());
+        }
+
+        // sigurohu që tipi nuk është null
+        if (njoftim.getTipi() == null) {
+            throw new IllegalArgumentException("Njoftim duhet të ketë tipi të vendosur");
+        }
+
+        String sql = "INSERT INTO njoftimet (user_id, tipi, mesazhi, data_koha, eshte_lexuar) VALUES (?, ?, ?, ?, ?)";
+
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setLong(1, njoftim.getPerdoruesi().getId());
-            ps.setString(2, njoftim.getMesazhi());
-            ps.setTimestamp(3, Timestamp.valueOf(njoftim.getDataKoha()));
-            ps.setBoolean(4, njoftim.isEshteLexuar());
+            ps.setString(2, njoftim.getTipi());
+            ps.setString(3, njoftim.getMesazhi());
+            ps.setTimestamp(4, Timestamp.valueOf(njoftim.getDataKoha()));
+            ps.setBoolean(5, false);
 
             ps.executeUpdate();
 
@@ -33,10 +46,11 @@ public class JdbcNjoftimDao implements NjoftimDao {
                     njoftim.setIdNjoftimi(rs.getLong(1));
                 }
             }
-        }
 
-        return njoftim;
+            return njoftim;
+        }
     }
+
 
     @Override
     public Optional<Njoftim> findById(Long idNjoftimi) throws SQLException {

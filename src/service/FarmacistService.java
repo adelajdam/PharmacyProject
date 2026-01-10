@@ -75,21 +75,6 @@ public class FarmacistService {
         return porosiDao.findAll();
     }
 
-//    public Porosi pranoPorosi(Long porosiId, User farmacist) throws SQLException {
-//        ensureFarmacist(farmacist);
-//        Porosi p = porosiDao.findById(porosiId)
-//                .orElseThrow(() -> new IllegalArgumentException("Porosia nuk u gjet"));
-//        p.setStatus("PRANUAR");
-//        return porosiDao.update(p);
-//    }
-//
-//    public Porosi refuzoPorosi(Long porosiId, User farmacist) throws SQLException {
-//        ensureFarmacist(farmacist);
-//        Porosi p = porosiDao.findById(porosiId)
-//                .orElseThrow(() -> new IllegalArgumentException("Porosia nuk u gjet"));
-//        p.setStatus("REFUZUAR");
-//        return porosiDao.update(p);
-//    }
 
     /* =================== RECETAT =================== */
 

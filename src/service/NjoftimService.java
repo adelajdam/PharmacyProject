@@ -37,6 +37,7 @@ public class NjoftimService {
                         "Produkti '" + p.getEmriProd() + "' ka stok 0"
                 );
                 n.setPerdoruesi(marrësiNjoftimit);
+                n.setDataKoha(java.time.LocalDateTime.now());
                 njoftimeDao.create(n);
             }
 
@@ -46,6 +47,7 @@ public class NjoftimService {
                         "Produkti '" + p.getEmriProd() + "' ka stok të ulët (" + p.getStok() + ")"
                 );
                 n.setPerdoruesi(marrësiNjoftimit);
+                n.setDataKoha(java.time.LocalDateTime.now());
                 njoftimeDao.create(n);
             }
         }

@@ -4,17 +4,22 @@ import Model.EmailSubscription;
 import Model.Produkt;
 import db.DatabaseManager;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class JdbcEmailSubscriptionDao implements EmailSubscriptionDao {
+    private final DataSource dataSource;
+    public JdbcEmailSubscriptionDao(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     @Override
     public EmailSubscription create(EmailSubscription sub) throws SQLException {
         String sql = """
-                INSERT INTO email_subscriptions (email, produkt_id, data_regjistrimit)
+                INSERT INTO email_subscription (email, produkt_id, data_regjistrimit)
                 VALUES (?, ?, ?)
                 """;
 

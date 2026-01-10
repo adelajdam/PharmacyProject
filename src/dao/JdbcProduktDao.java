@@ -3,12 +3,17 @@ package dao;
 import Model.Produkt;
 import db.DatabaseManager;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class JdbcProduktDao implements ProduktDao {
+    private final DataSource dataSource;
+    public JdbcProduktDao(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     @Override
     public Produkt create(Produkt produkt) throws SQLException {

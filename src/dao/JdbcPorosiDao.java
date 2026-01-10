@@ -3,16 +3,18 @@ package dao;
 import Model.*;
 import db.DatabaseManager;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class JdbcPorosiDao implements PorosiDao {
-
+    private final DataSource dataSource;
     private final PorosiProduktDao porosiProduktDao;
 
-    public JdbcPorosiDao(PorosiProduktDao porosiProduktDao) {
+    public JdbcPorosiDao(DataSource dataSource, PorosiProduktDao porosiProduktDao) {
+        this.dataSource = dataSource;
         this.porosiProduktDao = porosiProduktDao;
     }
 
@@ -20,7 +22,7 @@ public class JdbcPorosiDao implements PorosiDao {
     public Porosi create(Porosi porosi) throws SQLException {
 
         String sql = """
-            INSERT INTO porosite 
+            INSERT INTO porosite
             (klient_id, klient_type, data_porosise, totali, status)
             VALUES (?, ?, ?, ?, ?)
         """;
@@ -45,10 +47,10 @@ public class JdbcPorosiDao implements PorosiDao {
             }
         }
 
-        for (PorosiProdukt pp : porosi.getProduktet()) {
-            pp.setPorosiId(porosi.getIdPorosi());
-            porosiProduktDao.addProduktToPorosi(pp);
-        }
+//        for (PorosiProdukt pp : porosi.getProduktet()) {
+//            pp.setPorosiId(porosi.getIdPorosi());
+//            porosiProduktDao.addProduktToPorosi(pp);
+//        }
 
         return porosi;
     }
@@ -122,7 +124,7 @@ public class JdbcPorosiDao implements PorosiDao {
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT * FROM porosi WHERE klient_id = ? ORDER BY id_porosi DESC")) {
+                     "SELECT * FROM porosite WHERE klient_id = ? ORDER BY id_porosi DESC")) {
 
             stmt.setLong(1, klientId);
 

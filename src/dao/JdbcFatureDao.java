@@ -3,12 +3,17 @@ package dao;
 import Model.*;
 import db.DatabaseManager;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class JdbcFatureDao implements FatureDao {
+    private final DataSource dataSource;
+    public JdbcFatureDao(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     @Override
     public Fature create(Fature fature) throws SQLException {

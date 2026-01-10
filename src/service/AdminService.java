@@ -3,19 +3,31 @@ package service;
 import dao.UserDao;
 import Model.*;
 import db.DatabaseManager;
+import dao.SystemConfigDao;
+import dao.AuditLogDao;
+
 
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 public class AdminService {
 
     private final UserDao userDao;
+    private final SystemConfigDao systemConfigDao;
+    private final AuditLogDao auditLogDao;
 
-    public AdminService(UserDao userDao) {
+    public AdminService(UserDao userDao,
+                        SystemConfigDao systemConfigDao,
+                        AuditLogDao auditLogDao) {
+
         this.userDao = userDao;
+        this.systemConfigDao = systemConfigDao;
+        this.auditLogDao = auditLogDao;
     }
+
 
     /* ================== HELPER ================== */
 
@@ -83,12 +95,16 @@ public class AdminService {
     public void deleteUser(Long userId, User admin) throws SQLException {
         ensureAdmin(admin);
 
-        Optional<User> userOpt = userDao.findById(userId);
-        if (userOpt.isEmpty())
-            throw new IllegalArgumentException("Përdoruesi nuk u gjet");
+        User user = userDao.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Përdoruesi nuk u gjet"));
+
+        if ("KLIENT_LOGUAR".equals(user.getRole())) {
+            throw new SecurityException("Administratori nuk mund të fshijë klientë");
+        }
 
         userDao.delete(userId);
     }
+
 
 
     // Përditësimi i farmacistit
@@ -135,19 +151,46 @@ public class AdminService {
     }
 
     /* ================== SYSTEM CONFIG ================== */
-    // (strukturë bazë – mund të zgjerohet)
 
-    public void updateSystemConfig(String key, String value, User admin) {
+    public void updateSystemConfig(String key, String value, User admin) throws SQLException {
         ensureAdmin(admin);
-        // systemConfigDao.update(key, value);
+
+        SystemConfig existingConfig = systemConfigDao.findByKey(key);
+
+        if (existingConfig == null) {
+            systemConfigDao.save(new SystemConfig(key, value));
+        } else {
+            systemConfigDao.update(key, value);
+        }
+
+        AuditLog log = new AuditLog();
+        log.setUserId(admin.getId());
+        log.setVeprimi("Updated system configuration: " + key + " = " + value);
+        log.setDataKoha(java.time.LocalDateTime.now());
+
+        auditLogDao.create(log);
     }
+
+
 
     /* ================== AUDIT / REPORTS ================== */
-    // Placeholder – strukturë e gatshme për zgjerim
 
-    public void logAction(Long userId, String action) {
-        // auditLogDao.save(...)
+    public void logAction(User user, String veprimi) {
+        try {
+            AuditLog log = new AuditLog();
+            log.setUserId(user.getId());
+            log.setVeprimi(veprimi);
+
+            auditLogDao.create(log);
+        } catch (SQLException e) {
+            throw new RuntimeException("Audit log dështoi", e);
+        }
     }
+
+
+
+
+
 
     /* ================== BACKUP & RESTORE ================== */
 
@@ -163,6 +206,7 @@ public class AdminService {
         }
     }
 
+
     public void restoreDatabase(String backupFile, User admin) throws SQLException {
         ensureAdmin(admin);
 
@@ -170,6 +214,15 @@ public class AdminService {
              var stmt = conn.createStatement()) {
 
             stmt.execute("RUNSCRIPT FROM '" + backupFile + "'");
+
+        } catch (org.h2.jdbc.JdbcSQLSyntaxErrorException e) {
+            if (e.getMessage().contains("already exists")) {
+                System.out.println("Tabela ekziston, restore nuk u ekzekutua: " + e.getMessage());
+            } else {
+                throw e;
+            }
         }
     }
+
+
 }
