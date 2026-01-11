@@ -171,6 +171,16 @@ public class AdminService {
         auditLogDao.create(log);
     }
 
+    public List<AuditLog> getAuditLogs(User admin) throws SecurityException, SQLException {
+        if (!(admin instanceof Administrator)) {
+            throw new SecurityException("Access denied");
+        }
+
+        return auditLogDao.findByUser(admin.getId());
+    }
+
+
+
 
 
     /* ================== AUDIT / REPORTS ================== */

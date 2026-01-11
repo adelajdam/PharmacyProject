@@ -25,6 +25,11 @@ public class NjoftimService {
         this.porosiProduktDao=porosiProduktDao;
     }
 
+    public List<Njoftim> getAllNjoftime() throws SQLException {
+        return njoftimeDao.findAll();
+    }
+
+
 
     public void kontrolloStokun(User marrësiNjoftimit) throws SQLException {
         List<Produkt> lista = produktDao.findAll();

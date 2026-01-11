@@ -61,6 +61,10 @@ public class FarmacistService {
         return njoftimeDao.findByType("STOK_I_ULET");
     }
 
+    public List<Produkt> getAllProdukte() throws SQLException{
+        return produktDao.findAll(); // supozon që JdbcProduktDao ka findAll()
+    }
+
     /* =================== FATURET =================== */
 
     public List<Fature> merrFaturat(User farmacist) throws SQLException {

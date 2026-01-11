@@ -222,7 +222,7 @@ public class DatabaseManager {
             );
 
 
-            stmt.executeUpdate( "CREATE TABLE chatbox (" +
+            stmt.executeUpdate( "CREATE TABLE IF NOT EXISTS chatbox (" +
                     "id BIGINT PRIMARY KEY AUTO_INCREMENT," +
                     "sender_id BIGINT NOT NULL," +
                     "receiver_id BIGINT NOT NULL," +
