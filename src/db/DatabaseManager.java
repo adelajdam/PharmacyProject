@@ -28,16 +28,16 @@ public class DatabaseManager {
     public static void initDatabase() throws SQLException {
         try (Statement stmt = getConnection().createStatement()) {
             stmt.executeUpdate("CREATE TABLE IF NOT EXISTS users (" +
-                            "id IDENTITY PRIMARY KEY, " +
-                            "emri VARCHAR(100), " +
-                            "mbiemri VARCHAR(100), " +
-                            "email VARCHAR(200) NOT NULL UNIQUE, " +
-                            "password VARCHAR(200), " +
-                            "data_regjistrimit DATE, " +
-                            "role VARCHAR(50) NOT NULL, " +
-                            "adresa VARCHAR(200), " +
-                            "nr_tel VARCHAR(30)" +
-                            ")"
+                    "id IDENTITY PRIMARY KEY, " +
+                    "emri VARCHAR(100), " +
+                    "mbiemri VARCHAR(100), " +
+                    "email VARCHAR(200) NOT NULL UNIQUE, " +
+                    "password VARCHAR(200), " +
+                    "data_regjistrimit DATE, " +
+                    "role VARCHAR(50) NOT NULL, " +
+                    "adresa VARCHAR(200), " +
+                    "nr_tel VARCHAR(30)" +
+                    ")"
             );
 
 
@@ -58,13 +58,13 @@ public class DatabaseManager {
 
 
             stmt.executeUpdate("CREATE TABLE IF NOT EXISTS produktet (" +
-                            "id_prod IDENTITY PRIMARY KEY, " +
-                            "emri_prod VARCHAR(200) NOT NULL, " +
-                            "pershkrimi VARCHAR(500), " +
-                            "cmimi DOUBLE NOT NULL, " +
-                            "stok INT NOT NULL, " +
-                            "kategori VARCHAR(100)" +
-                            ")"
+                    "id_prod IDENTITY PRIMARY KEY, " +
+                    "emri_prod VARCHAR(200) NOT NULL, " +
+                    "pershkrimi VARCHAR(500), " +
+                    "cmimi DOUBLE NOT NULL, " +
+                    "stok INT NOT NULL, " +
+                    "kategori VARCHAR(100)" +
+                    ")"
             );
 
 
@@ -80,13 +80,13 @@ public class DatabaseManager {
 
 
             stmt.executeUpdate("CREATE TABLE IF NOT EXISTS shporta (" +
-                            "id_shporta IDENTITY PRIMARY KEY, " +
-                            "klient_id BIGINT NULL, " +
-                            "guest_id BIGINT NULL, " +
-                            "cmimi_total DOUBLE, " +
-                            "CONSTRAINT fk_shporta_klient FOREIGN KEY (klient_id) REFERENCES users(id) ON DELETE CASCADE, " +
-                            "CONSTRAINT fk_shporta_guest FOREIGN KEY (guest_id) REFERENCES users(id) ON DELETE CASCADE" +
-                            ")"
+                    "id_shporta IDENTITY PRIMARY KEY, " +
+                    "klient_id BIGINT NULL, " +
+                    "guest_id BIGINT NULL, " +
+                    "cmimi_total DOUBLE, " +
+                    "CONSTRAINT fk_shporta_klient FOREIGN KEY (klient_id) REFERENCES users(id) ON DELETE CASCADE, " +
+                    "CONSTRAINT fk_shporta_guest FOREIGN KEY (guest_id) REFERENCES users(id) ON DELETE CASCADE" +
+                    ")"
             );
 
 
@@ -126,14 +126,14 @@ public class DatabaseManager {
 
 
             stmt.executeUpdate("CREATE TABLE IF NOT EXISTS porosite (" +
-                            "id_porosi IDENTITY PRIMARY KEY, " +
-                            "klient_id BIGINT NOT NULL, " +
-                            "klient_type VARCHAR(50) NOT NULL, " +
-                            "data_porosise DATE NOT NULL, " +
-                            "totali DOUBLE NOT NULL, " +
-                            "status VARCHAR(100) NOT NULL, " +
-                            "CONSTRAINT fk_porosi_klient FOREIGN KEY (klient_id) REFERENCES users(id) ON DELETE CASCADE" +
-                            ")"
+                    "id_porosi IDENTITY PRIMARY KEY, " +
+                    "klient_id BIGINT NOT NULL, " +
+                    "klient_type VARCHAR(50) NOT NULL, " +
+                    "data_porosise DATE NOT NULL, " +
+                    "totali DOUBLE NOT NULL, " +
+                    "status VARCHAR(100) NOT NULL, " +
+                    "CONSTRAINT fk_porosi_klient FOREIGN KEY (klient_id) REFERENCES users(id) ON DELETE CASCADE" +
+                    ")"
             );
 
 
